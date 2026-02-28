@@ -1,35 +1,23 @@
 import streamlit as st
 import requests
 
-# Set the OpenRouter API endpoint and your API key
-API_URL = 'https://api.openrouter.ai/chat'
-API_KEY = 'YOUR_API_KEY'  # Replace with your actual API key
+# Setting up the Streamlit app
+st.title("OpenRouter Chatbot")
 
-st.title('Chatbot Application')
+# File uploader
+uploaded_file = st.file_uploader("Upload a file", type=['txt', 'pdf', 'docx'])
 
-# Function to send a message to the OpenRouter API
-def send_message(message):
-    response = requests.post(API_URL, json={'input': message}, headers={'Authorization': f'Bearer {API_KEY}'})
-    return response.json().get('output', 'Sorry, I could not get a response.')
+# Chat functionality
+st.subheader("Chat with the bot")
+user_input = st.text_input("You: ")
 
-# Chat message input
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
+if st.button("Send"):
+    if uploaded_file is not None:
+        # Process the uploaded file (this could be expanded with actual processing logic)
+        st.write("File Uploaded: ", uploaded_file.name)
+    # Here you would typically send the user_input to OpenRouter's API  
+    response = requests.post("https://api.openrouter.ai/your_endpoint", json={'message': user_input})
+    st.write("Bot: ", response.json()['reply'])
 
-message_input = st.text_input('You:', '')
+# Note: Ensure to replace 'your_endpoint' with your actual API endpoint for OpenRouter.
 
-if st.button('Send') and message_input:
-    st.session_state.messages.append(('User', message_input))
-    response = send_message(message_input)
-    st.session_state.messages.append(('Bot', response))
-    st.text_input('You:', '', key='new_input')
-
-# Display chat messages
-for role, message in st.session_state.messages:
-    st.markdown(f'**{role}:** {message}')
-
-# File upload functionality
-uploaded_file = st.file_uploader('Upload a file', type=['txt', 'pdf'])
-if uploaded_file is not None:
-    st.write('Uploaded file:', uploaded_file.name)
-    # Add functionality to process the uploaded file here
