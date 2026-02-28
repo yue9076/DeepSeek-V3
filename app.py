@@ -1,23 +1,38 @@
-import streamlit as st
-import requests
+import os
+import openai
+from flask import Flask, request, jsonify
 
-# Setting up the Streamlit app
-st.title("OpenRouter Chatbot")
+app = Flask(__name__)
 
-# File uploader
-uploaded_file = st.file_uploader("Upload a file", type=['txt', 'pdf', 'docx'])
+# Configure OpenAI API
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
-# Chat functionality
-st.subheader("Chat with the bot")
-user_input = st.text_input("You: ")
+@app.route('/chat', methods=['POST'])
+def chat():
+    user_message = request.json.get('message')
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {'role': 'user', 'content': user_message}
+            ]
+        )
+        chat_response = response['choices'][0]['message']['content']
+        return jsonify({'response': chat_response})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-if st.button("Send"):
-    if uploaded_file is not None:
-        # Process the uploaded file (this could be expanded with actual processing logic)
-        st.write("File Uploaded: ", uploaded_file.name)
-    # Here you would typically send the user_input to OpenRouter's API  
-    response = requests.post("https://api.openrouter.ai/your_endpoint", json={'message': user_input})
-    st.write("Bot: ", response.json()['reply'])
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    # Process the uploaded file
+    file.save(os.path.join('uploads', file.filename))
+    return jsonify({'message': 'File uploaded successfully'}), 200
 
-# Note: Ensure to replace 'your_endpoint' with your actual API endpoint for OpenRouter.
-
+if __name__ == '__main__':
+    os.makedirs('uploads', exist_ok=True)  # Create upload directory if it doesn't exist
+    app.run(debug=True, host='0.0.0.0', port=5000)
